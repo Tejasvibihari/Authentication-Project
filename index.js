@@ -68,7 +68,6 @@ app.post("/register", async (req, res) => {
     res.render('secrets.ejs'); // Render your success view
   } catch (err) {
     console.log(err);
-    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -76,6 +75,23 @@ app.post("/register", async (req, res) => {
 app.post("/login", async (req, res) => {
   const email = req.body.username;
   const password = req.body.password;
+  try {
+    const existingemail = await User.findOne({ email });
+    const existingPassword = await User.findOne({ password });
+    if (existingemail === null) {
+      res.send("User Not Found");
+    }
+    else {
+      if (existingemail && existingPassword) {
+        res.render("secrets.ejs");
+      }
+      else {
+        res.send("Invalid Credentials");
+      }
+    }
+  } catch (err) {
+    console.log(err);
+  }
 });
 
 app.listen(port, () => {
