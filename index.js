@@ -1,9 +1,12 @@
 import express from "express";
 import bodyParser from "body-parser";
 import mongoose, { Mongoose } from "mongoose";
+import bcrypt from "bcrypt";
+
 
 const app = express();
 const port = 3000;
+const saltRounds = 10;
 
 app.set("view engine", "ejs");
 // mongodb connection
@@ -54,42 +57,59 @@ app.post("/register", async (req, res) => {
     if (existingUser) {
       return res.send('Email already exists. Try logging in.');
     }
+    // Password Hashing
+    bcrypt.hash(password, saltRounds, async (err, hash) => {
+      if (err) {
+        console.log("Error Hashing password:", err)
+      } else {
+        // Create a new user
+        const newUser = new User({
+          email: email,
+          password: hash
+        });
+        await newUser.save();
 
-    // Create a new user
-    const newUser = new User({
-      email: email,
-      password: password
+        // Log the result (optional)
+        console.log('User registered:', newUser);
+
+        res.render('secrets.ejs'); // Render your success view
+      }
     });
-    await newUser.save();
-
-    // Log the result (optional)
-    console.log('User registered:', newUser);
-
-    res.render('secrets.ejs'); // Render your success view
   } catch (err) {
     console.log(err);
   }
 });
 
 
-app.post("/login", async (req, res) => {
+// Handle POST request to the /login endpoint
+app.post('/login', async (req, res) => {
+  // Extract the email and password from the request body
   const email = req.body.username;
-  const password = req.body.password;
+  const loginPassword = req.body.password;
   try {
-    const existingemail = await User.findOne({ email });
-    const existingPassword = await User.findOne({ password });
-    if (existingemail === null) {
-      res.send("User Not Found");
-    }
-    else {
-      if (existingemail && existingPassword) {
-        res.render("secrets.ejs");
-      }
-      else {
-        res.send("Invalid Credentials");
-      }
+    // Find a user with the provided email in the database
+    const user = await User.findOne({ email });
+    // If no user is found with the provided email, send a response indicating user not found
+    if (user === null) {
+      res.send('User Not Found');
+    } else {
+      // Compare the provided password with the hashed password stored in the database
+      bcrypt.compare(loginPassword, user.password, (err, result) => {
+        // Handle any errors that might occur during password comparison
+        if (err) {
+          console.log('Error comparing Password', err);
+        }
+        // If the user exists and the password matches, render the secrets view
+        if (user && result) {
+          res.render('secrets.ejs');
+        } else {
+          // If the password doesn't match, log an error message
+          console.log('Invalid Credentials');
+        }
+      });
     }
   } catch (err) {
+    // Handle any other errors that might occur during the database query
     console.log(err);
   }
 });
