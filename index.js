@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import session from "express-session";
 import passport from "passport";
 import { Strategy } from "passport-local";
+import GoogleStrategy from "passport-google-oauth20";
 
 
 const app = express();
@@ -76,45 +77,29 @@ app.get("/secrets", (req, res) => {
 app.post('/register', async (req, res) => {
   const email = req.body.username;
   const password = req.body.password;
-
   try {
-    // Check if the email already exists
-    const existingUser = await User.findOne({ email });
-
-    if (existingUser) {
-      return res.send('Email already exists. Try logging in.');
-    }
-
-    // Hash the password
-    bcrypt.hash(password, saltRounds, async (err, hash) => {
-      if (err) {
-        console.error('Error hashing password:', err);
-        return res.status(500).send('Internal Server Error');
-      }
-
-      // Create a new user
-      const newUser = new User({ email, password: hash });
-
-      // Save the new user to the database
-      await newUser.save();
-
-      // Log the result (optional)
-      console.log('User registered:', newUser);
-
-      // Log in the user and redirect to the secrets page
-      req.login(newUser, (err) => {
-        if (err) {
-          console.log(err);
-          return res.status(500).send('Internal Server Error');
-        }
-        res.redirect('/secrets');
+    const checkResult = await User.findOne({ username: email });
+    console.log(checkResult);
+    if (checkResult === null) {
+      bcrypt.hash(password, saltRounds, async (err, hash) => {
+        const newUser = new User({
+          username: email,
+          password: hash,
+        });
+        const savedUser = await newUser.save();
+        res.json(savedUser);
+        res.render("secrets.ejs");
       });
-    });
+
+    } else {
+      res.send("User already exists");
+    }
   } catch (err) {
     console.log(err);
-    res.status(500).send('Internal Server Error');
+    res.status(500).send("Server Error");
   }
 });
+
 
 
 // Handle POST request to the /login endpoint
@@ -122,6 +107,7 @@ app.post('/login', passport.authenticate("local", {
   successRedirect: "/secrets",
   failureRedirect: "/login"
 }))
+
 
 
 passport.use(new Strategy(async function verify(username, password, cb) {
@@ -152,6 +138,14 @@ passport.use(new Strategy(async function verify(username, password, cb) {
     console.log(err);
   }
 }));
+
+passport.use("google", new GoogleStrategy({
+  clientID: "828699564503-ojrr8b1jodh5fha4ku45o5elfr6pgddc.apps.googleusercontent.com",
+  clientSecret: "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",
+  callbackURL: "http://localhost:3000/auth/google/index",
+  userProfileURL:
+}));
+
 
 passport.serializeUser((user, cb) => {
   cb(null, user);
