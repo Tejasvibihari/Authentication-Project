@@ -20,7 +20,7 @@ app.use(session({
   secret: "TOPSECRETWORD",
   resave: false,
   saveUninitialized: true,
-  cokkie: {
+  cookie: {
     maxAge: 1000 * 60 * 60 * 24,
   },
 }));
@@ -66,7 +66,7 @@ app.get("/register", (req, res) => {
   res.render("register.ejs");
 });
 app.get("/secrets", (req, res) => {
-  // console.log(req.user);
+  console.log(req.user);
   if (req.isAuthenticated()) {
     res.render("secrets.ejs");
   } else {
@@ -92,15 +92,23 @@ app.post('/register', async (req, res) => {
             username: email,
             password: hash,
           });
-          const savedUser = await newUser.save()
+          const user = newUser.save()
             .then(() => {
               console.log("Saved");
+
             })
             .catch((err) => {
               console.log(err);
             })
+          console.log(`user: ${user}`);
           // res.json(savedUser);
-          res.render("secrets.ejs");
+          req.login(user, (err) => {
+            if (err) {
+              console.log(err);
+            } else {
+              res.redirect("/login");
+            }
+          });
         });
       }
     } else {
@@ -162,11 +170,11 @@ passport.use(new Strategy(async function verify(username, password, cb) {
 passport.serializeUser((user, cb) => {
   cb(null, user);
 });
+
 // Deserialize the user by finding the appropriate userId in the session and returning the associated
 passport.deserializeUser((user, cb) => {
   cb(null, user);
 });
-
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
