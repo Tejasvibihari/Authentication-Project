@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 import session from "express-session";
 import passport from "passport";
 import { Strategy } from "passport-local";
-import GoogleStrategy from "passport-google-oauth20";
+import GoogleStrategy from "passport-google-oauth2";
 
 
 const app = express();
@@ -42,7 +42,7 @@ const users = new mongoose.Schema({
   username: {
     type: String,
     required: true,
-    unique: true,
+    // unique: true,
 
   },
   password: {
@@ -77,20 +77,32 @@ app.get("/secrets", (req, res) => {
 app.post('/register', async (req, res) => {
   const email = req.body.username;
   const password = req.body.password;
+  const confirmPassword = req.body.confirmPassword;
   try {
     const checkResult = await User.findOne({ username: email });
     console.log(checkResult);
     if (checkResult === null) {
-      bcrypt.hash(password, saltRounds, async (err, hash) => {
-        const newUser = new User({
-          username: email,
-          password: hash,
+      if (password !== confirmPassword) {
+        // res.send("Passwords do not match");
+        const pas = "Passwords do not match";
+        res.render("register.ejs", { passError: pas })
+      } else {
+        bcrypt.hash(password, saltRounds, async (err, hash) => {
+          const newUser = new User({
+            username: email,
+            password: hash,
+          });
+          const savedUser = await newUser.save()
+            .then(() => {
+              console.log("Saved");
+            })
+            .catch((err) => {
+              console.log(err);
+            })
+          // res.json(savedUser);
+          res.render("secrets.ejs");
         });
-        const savedUser = await newUser.save();
-        res.json(savedUser);
-        res.render("secrets.ejs");
-      });
-
+      }
     } else {
       res.send("User already exists");
     }
@@ -139,12 +151,12 @@ passport.use(new Strategy(async function verify(username, password, cb) {
   }
 }));
 
-passport.use("google", new GoogleStrategy({
-  clientID: "828699564503-ojrr8b1jodh5fha4ku45o5elfr6pgddc.apps.googleusercontent.com",
-  clientSecret: "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",
-  callbackURL: "http://localhost:3000/auth/google/index",
-  userProfileURL:
-}));
+// passport.use("google", new GoogleStrategy({
+//   clientID: "828699564503-ojrr8b1jodh5fha4ku45o5elfr6pgddc.apps.googleusercontent.com",
+//   clientSecret: "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",
+//   callbackURL: "http://localhost:3000/auth/google/index",
+//   userProfileURL:sdf
+// }));
 
 
 passport.serializeUser((user, cb) => {
