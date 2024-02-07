@@ -163,9 +163,10 @@ passport.use(new Strategy(async function verify(username, password, cb) {
 //   clientID: "828699564503-ojrr8b1jodh5fha4ku45o5elfr6pgddc.apps.googleusercontent.com",
 //   clientSecret: "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",
 //   callbackURL: "http://localhost:3000/auth/google/index",
-//   userProfileURL:sdf
+
 // }));
 
+// Guriya 
 
 passport.serializeUser((user, cb) => {
   cb(null, user);
