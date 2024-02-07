@@ -166,7 +166,7 @@ passport.use(new Strategy(async function verify(username, password, cb) {
 
 // }));
 
-// Guriya 
+
 
 passport.serializeUser((user, cb) => {
   cb(null, user);
